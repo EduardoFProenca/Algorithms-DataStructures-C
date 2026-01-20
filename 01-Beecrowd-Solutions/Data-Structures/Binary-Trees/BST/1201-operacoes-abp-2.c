@@ -1,3 +1,24 @@
+/*
+Beecrowd : 1201 - Operações em ABP II
+https://judge.beecrowd.com/pt/problems/view/1201
+
+**Explicação do Código:**
+Este programa implementa uma Árvore Binária de Busca (BST) com operações avançadas de inserção, pesquisa e remoção.
+Além disso, permite a impressão da árvore em três ordens: Pré-ordem, Em-ordem (Infixa) e Pós-ordem.
+
+A estrutura do nó inclui um ponteiro para o nó pai (*parent), o que facilita a operação de remoção.
+
+As operações suportadas são:
+- "I X": Insere o inteiro X na árvore.
+- "P X": Pesquisa se X existe na árvore. Imprime "X existe" ou "X nao existe".
+- "R X": Remove o inteiro X da árvore, mantendo as propriedades da BST.
+  A remoção trata três casos:
+  1. Nó folha (sem filhos).
+  2. Nó com apenas um filho.
+  3. Nó com dois filhos (substitui pelo antecessor).
+- "PREFIXA", "INFIXA", "POSFIXA": Imprimem a árvore na ordem correspondente.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,273 +26,284 @@
 #define FALSE 0
 #define TRUE 1
 
-struct regNo
+// Estrutura do nó da árvore binária
+struct TreeNode
 {
-	struct regNo *esq;
-	int valor;
-	struct regNo *mae;
-	struct regNo *dir;
+    struct TreeNode *left;  // Ponteiro para o filho à esquerda
+    int value;             // Valor armazenado no nó
+    struct TreeNode *parent;// Ponteiro para o nó pai
+    struct TreeNode *right; // Ponteiro para o filho à direita
 };
-typedef struct regNo TNo;
+typedef struct TreeNode TNode;
 
-int PesquisaValor(TNo *, int);
-TNo *Remove(TNo *, int);
-TNo *AchaPai(TNo *, int);
-void ImprimeArvorePre(TNo *r, int *primeiro);
-void ImprimeArvoreIn(TNo *r, int *primeiro);
-void ImprimeArvorePost(TNo *r, int *primeiro);
-int IncluiItem(TNo **, int);
-void DestroiLista(TNo *r);
+// Protótipos das funções
+int SearchValue(TNode *, int);
+TNode *RemoveNode(TNode *, int);
+TNode *FindParent(TNode *, int);
+void PrintPreOrder(TNode *r, int *isFirst);
+void PrintInOrder(TNode *r, int *isFirst);
+void PrintPostOrder(TNode *r, int *isFirst);
+int InsertNode(TNode **, int);
+void FreeTree(TNode *r);
 
 int main(void)
 {
-	TNo *raiz = NULL;
-	char e[8];
-	int num;
+    TNode *root = NULL;
+    char command[8];
+    int number;
 
-	while (scanf(" %s", e) != EOF)
-	{
+    // Loop que lê comandos até o fim do arquivo (EOF)
+    while (scanf(" %s", command) != EOF)
+    {
 
-		if (strcmp("INFIXA", e) == 0)
-		{
-			int primeiro = 0;
-			ImprimeArvoreIn(raiz, &primeiro);
-			printf("\n");
-		}
-		else if ('I' == e[0])
-		{
-			scanf(" %d", &num);
-			if (IncluiItem(&raiz, num) == FALSE)
-			{
-				puts("Memoria insuficiente para inclusao");
-				return 2;
-			}
-		}
-		if (strcmp("PREFIXA", e) == 0)
-		{
-			int primeiro = 0;
-			ImprimeArvorePre(raiz, &primeiro);
-			printf("\n");
-		}
-		else if (strcmp("POSFIXA", e) == 0)
-		{
-			int primeiro = 0;
-			ImprimeArvorePost(raiz, &primeiro);
-			printf("\n");
-		}
-		else if (e[0] == 'P')
-		{
-			scanf(" %d", &num);
-			if (PesquisaValor(raiz, num) != FALSE)
-				printf("%d existe\n", num);
-			else
-				printf("%d nao existe\n", num);
-		}
-		if (e[0] == 'R')
-		{
-			TNo *pai = NULL;
-			scanf(" %d", &num);
-			raiz = Remove(raiz, num);
-		}
-	}
+        if (strcmp("INFIXA", command) == 0)
+        {
+            int isFirst = 0;
+            PrintInOrder(root, &isFirst);
+            printf("\n");
+        }
+        else if ('I' == command[0]) // Comando de Inserção
+        {
+            scanf(" %d", &number);
+            if (InsertNode(&root, number) == FALSE)
+            {
+                puts("Memoria insuficiente para inclusao");
+                return 2;
+            }
+        }
+        if (strcmp("PREFIXA", command) == 0)
+        {
+            int isFirst = 0;
+            PrintPreOrder(root, &isFirst);
+            printf("\n");
+        }
+        else if (strcmp("POSFIXA", command) == 0)
+        {
+            int isFirst = 0;
+            PrintPostOrder(root, &isFirst);
+            printf("\n");
+        }
+        else if (command[0] == 'P') // Comando de Pesquisa
+        {
+            scanf(" %d", &number);
+            if (SearchValue(root, number) != FALSE)
+                printf("%d existe\n", number);
+            else
+                printf("%d nao existe\n", number);
+        }
+        if (command[0] == 'R') // Comando de Remoção
+        {
+            scanf(" %d", &number);
+            root = RemoveNode(root, number);
+        }
+    }
 
-	DestroiLista(raiz);
-	raiz = NULL;
-	return 0;
+    // Libera a memória ao final
+    FreeTree(root);
+    root = NULL;
+    return 0;
 }
 
-int IncluiItem(TNo **r, int n)
+// Função para inserir um novo nó
+int InsertNode(TNode **rootRef, int n)
 {
-	TNo *aux, *pai;
+    TNode *newNode, *parent;
 
-	aux = (TNo *)malloc(sizeof(TNo));
-	if (aux == NULL)
-		return FALSE;
+    newNode = (TNode *)malloc(sizeof(TNode));
+    if (newNode == NULL)
+        return FALSE;
 
-	aux->valor = n;
-	aux->dir = NULL;
-	aux->esq = NULL;
+    newNode->value = n;
+    newNode->right = NULL;
+    newNode->left = NULL;
+    newNode->parent = NULL; // Inicializa o pai como NULL
 
-	/* Fazendo o encadeamento do novo noh */
-	pai = AchaPai(*r, n);
-	if (pai == NULL)
-	{
-		*r = aux;
-		aux->mae = NULL;
-	}
-	else
-	{
-		if (n <= pai->valor)
-			pai->esq = aux;
-		else
-			pai->dir = aux;
-		aux->mae = pai;
-	}
-	return TRUE;
+    /* Encontra o pai do novo nó para fazer o encadeamento */
+    parent = FindParent(*rootRef, n);
+    if (parent == NULL)
+    {
+        *rootRef = newNode; // Se não tem pai, é a raiz
+        newNode->parent = NULL;
+    }
+    else
+    {
+        if (n <= parent->value)
+            parent->left = newNode;
+        else
+            parent->right = newNode;
+        newNode->parent = parent; // Define o pai do novo nó
+    }
+    return TRUE;
 }
 
-TNo *AchaPai(TNo *r, int n)
+// Função para encontrar o pai onde o nó deve ser inserido
+TNode *FindParent(TNode *r, int n)
 {
-	if (r == NULL)
-		return NULL;
-	else if (n <= r->valor)
-		/* n C) descendente do lado esquerdo de r */
-		if (r->esq == NULL)
-			return r;
-		else
-			return AchaPai(r->esq, n);
-	else
-		/* n C) descendente do lado direito de r */
-		if (r->dir == NULL)
-			return r;
-		else
-			return AchaPai(r->dir, n);
+    if (r == NULL)
+        return NULL;
+    else if (n <= r->value)
+        /* n é descendente do lado esquerdo de r */
+        if (r->left == NULL)
+            return r;
+        else
+            return FindParent(r->left, n);
+    else
+        /* n é descendente do lado direito de r */
+        if (r->right == NULL)
+            return r;
+        else
+            return FindParent(r->right, n);
 }
 
-void ImprimeArvorePre(TNo *r, int *primeiro)
+// Impressão em Pré-ordem (Raiz, Esq, Dir)
+void PrintPreOrder(TNode *r, int *isFirst)
 {
+    if (r != NULL)
+    {
+        if (*isFirst == 0)
+        {
+            printf("%d", r->value);
+            *isFirst = 1;
+        }
+        else
+            printf(" %d", r->value);
 
-	if (r != NULL)
-	{
-
-		if (*primeiro == 0)
-		{
-			printf("%d", r->valor);
-			*primeiro = 1;
-		}
-		else
-			printf(" %d", r->valor);
-
-		ImprimeArvorePre(r->esq, primeiro);
-		ImprimeArvorePre(r->dir, primeiro);
-	}
+        PrintPreOrder(r->left, isFirst);
+        PrintPreOrder(r->right, isFirst);
+    }
 }
 
-void ImprimeArvoreIn(TNo *r, int *primeiro)
+// Impressão Em-ordem (Esq, Raiz, Dir)
+void PrintInOrder(TNode *r, int *isFirst)
 {
+    if (r != NULL)
+    {
+        PrintInOrder(r->left, isFirst);
 
-	if (r != NULL)
-	{
-		ImprimeArvoreIn(r->esq, primeiro);
+        if (*isFirst == 0)
+        {
+            printf("%d", r->value);
+            *isFirst = 1;
+        }
+        else
+            printf(" %d", r->value);
 
-		if (*primeiro == 0)
-		{
-			printf("%d", r->valor);
-			*primeiro = 1;
-		}
-		else
-			printf(" %d", r->valor);
-		;
-
-		ImprimeArvoreIn(r->dir, primeiro);
-	}
+        PrintInOrder(r->right, isFirst);
+    }
 }
 
-void ImprimeArvorePost(TNo *r, int *primeiro)
+// Impressão Pós-ordem (Esq, Dir, Raiz)
+void PrintPostOrder(TNode *r, int *isFirst)
 {
+    if (r != NULL)
+    {
+        PrintPostOrder(r->left, isFirst);
+        PrintPostOrder(r->right, isFirst);
 
-	if (r != NULL)
-	{
-		ImprimeArvorePost(r->esq, primeiro);
-		ImprimeArvorePost(r->dir, primeiro);
-
-		if (*primeiro == 0)
-		{
-			printf("%d", r->valor);
-			*primeiro = 1;
-		}
-		else
-			printf(" %d", r->valor);
-	}
+        if (*isFirst == 0)
+        {
+            printf("%d", r->value);
+            *isFirst = 1;
+        }
+        else
+            printf(" %d", r->value);
+    }
 }
 
-void DestroiLista(TNo *r)
+// Libera a memória da árvore
+void FreeTree(TNode *r)
 {
-
-	if (r != NULL)
-	{
-
-		DestroiLista(r->esq);
-		DestroiLista(r->dir);
-
-		free(r);
-	}
+    if (r != NULL)
+    {
+        FreeTree(r->left);
+        FreeTree(r->right);
+        free(r);
+    }
 }
 
-int PesquisaValor(TNo *r, int n)
+// Função de busca (retorna TRUE ou FALSE)
+int SearchValue(TNode *r, int n)
 {
-	if (r == NULL)
-		return FALSE;
-	else if (r->valor == n)
-		return TRUE;
-	else if (r->valor > n)
-		return PesquisaValor(r->esq, n);
-	else
-		return PesquisaValor(r->dir, n);
+    if (r == NULL)
+        return FALSE;
+    else if (r->value == n)
+        return TRUE;
+    else if (r->value > n)
+        return SearchValue(r->left, n);
+    else
+        return SearchValue(r->right, n);
 }
 
-TNo *Remove(TNo *r, int n)
+// Função de remoção de um nó
+TNode *RemoveNode(TNode *r, int n)
 {
-	if (r == NULL)
-		return NULL;
+    if (r == NULL)
+        return NULL;
 
-	if (r->valor == n)
-	{
-		/* Caso 1 e 2: sem filhos ou um filho */
-		if (r->esq == NULL && r->dir == NULL)
-		{
-			if (r->mae != NULL)
-			{
-				if (r->mae->esq == r)
-					r->mae->esq = NULL;
-				else
-					r->mae->dir = NULL;
-			}
-			free(r);
-			return NULL;
-		}
-		else if (r->esq == NULL || r->dir == NULL)
-		{
-			TNo *filho ;
-			filho = (r->esq != NULL) ? r->esq : r->dir;
-			
-			if (r->mae != NULL)
-			{
-				if (r->mae->esq == r)
-					r->mae->esq = filho;
-				else
-					r->mae->dir = filho;
-				filho->mae = r->mae;
-			}
-			else
-			{
-				filho->mae = NULL;
-			}
-			free(r);
-			return filho;
-		}
-		/* Caso 3: dois filhos - usar ANTECESSOR */
-		else
-		{
-			TNo *antecessor ;
-			antecessor = r->esq;
+    if (r->value == n)
+    {
+        /* Caso 1 e 2: sem filhos (folha) ou um filho */
+        if (r->left == NULL && r->right == NULL) // Caso 1: Nó folha
+        {
+            if (r->parent != NULL) // Se não for a raiz, atualiza o pai
+            {
+                if (r->parent->left == r)
+                    r->parent->left = NULL;
+                else
+                    r->parent->right = NULL;
+            }
+            free(r);
+            return NULL; // Retorna NULL para o pai (se for chamado recursivamente)
+        }
+        else if (r->left == NULL || r->right == NULL) // Caso 2: Um filho
+        {
+            TNode *child;
+            child = (r->left != NULL) ? r->left : r->right;
 
-			while (antecessor->dir != NULL)
-			{
-				antecessor = antecessor->dir;
-			}
-			
-			r->valor = antecessor->valor;
-			r->esq = Remove(r->esq, antecessor->valor);
-			return r;
-		}
-	}
-	else
-	{
-		if (n < r->valor)
-			r->esq = Remove(r->esq, n);
-		else
-			r->dir = Remove(r->dir, n);
-		return r;
-	}
+            if (r->parent != NULL)
+            {
+                // Conecta o filho diretamente ao pai do nó removido
+                if (r->parent->left == r)
+                    r->parent->left = child;
+                else
+                    r->parent->right = child;
+                child->parent = r->parent;
+            }
+            else
+            {
+                // Se for a raiz, o filho se torna a nova raiz (sem pai)
+                child->parent = NULL;
+            }
+            free(r);
+            return child; // Retorna o filho para subir na árvore
+        }
+        /* Caso 3: dois filhos - usar ANTECESSOR */
+        else
+        {
+            TNode *predecessor;
+            // O antecessor é o maior valor da subárvore esquerda (mais à direita)
+            predecessor = r->left;
+
+            while (predecessor->right != NULL)
+            {
+                predecessor = predecessor->right;
+            }
+
+            // Copia o valor do antecessor para o nó atual
+            r->value = predecessor->value;
+            
+            // Remove recursivamente o antecessor da subárvore esquerda
+            r->left = RemoveNode(r->left, predecessor->value);
+            return r;
+        }
+    }
+    else
+    {
+        // Navega na árvore para encontrar o nó a ser removido
+        if (n < r->value)
+            r->left = RemoveNode(r->left, n);
+        else
+            r->right = RemoveNode(r->right, n);
+        return r;
+    }
 }

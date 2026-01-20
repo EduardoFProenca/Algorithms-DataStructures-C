@@ -1,101 +1,138 @@
+/*
+Beecrowd : 1022 - TDA Racional
+https://judge.beecrowd.com/pt/problems/view/1022
+
+**Explicação do Código:**
+Este programa realiza operações matemáticas (adição, subtração, multiplicação e divisão) 
+entre números racionais (frações). O processo é o seguinte:
+1. Lê a quantidade de casos de teste.
+2. Para cada caso, lê duas frações (numerador/denominador) e um operador.
+3. Executa a operação correspondente seguindo as regras matemáticas para frações.
+4. Simplifica o resultado obtido dividindo o numerador e o denominador pelo 
+   Máximo Divisor Comum (MDC ou GCD em inglês).
+5. Imprime o resultado não simplificado e o resultado simplificado no formato "N1/D1 = N2/D2".
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-typedef struct {int num, den;} TRac;
-/* Prototipos das funcoes */
-TRac SomaRac(TRac, TRac);
-TRac SubtraiRac(TRac, TRac);
-TRac MultRac(TRac, TRac);
-TRac DivRac(TRac, TRac);
-TRac SimplRac(TRac);
-int mdc(int, int);
+
+// Definição da estrutura para números racionais
+typedef struct { int numerator, denominator; } TRational;
+
+/* Protótipos das funções */
+TRational AddRational(TRational, TRational);
+TRational SubRational(TRational, TRational);
+TRational MultRational(TRational, TRational);
+TRational DivRational(TRational, TRational);
+TRational SimplifyRational(TRational);
+int gcd(int, int); // GCD = Greatest Common Divisor (MDC)
+
 int main(void)
-{    TRac X, Y, R, b;
-    int QuatTest , i;
-    char sinal;
+{
+    TRational r1, r2, result, copyResult;
+    int testCases, i;
+    char operator;
 
-    scanf(" %d", &QuatTest);
+    scanf(" %d", &testCases);
 
-    TRac Resultado[QuatTest];
-    TRac ResultadoSimpl[QuatTest];
+    // Arrays para armazenar os resultados (bruto e simplificado) de cada teste
+    TRational rawResults[testCases];
+    TRational simplifiedResults[testCases];
 
-    if (1 <= QuatTest && 10000 >= QuatTest)
-    for ( i = 0; i < QuatTest; i++ ){
-        scanf("%d / %d %c %d / %d", &X.num, &X.den, &sinal, &Y.num, &Y.den);
+    // Verificação de range mantida da lógica original
+    if (1 <= testCases && 10000 >= testCases)
+        for (i = 0; i < testCases; i++) {
+            scanf("%d / %d %c %d / %d", &r1.numerator, &r1.denominator, &operator, &r2.numerator, &r2.denominator);
 
-        switch(sinal){
-            case '+':
-                R = SomaRac(X, Y);    
-            break;
+            switch (operator) {
+                case '+':
+                    result = AddRational(r1, r2);
+                    break;
 
-            case '-':
-                R = SubtraiRac(X, Y);    
-            break;
+                case '-':
+                    result = SubRational(r1, r2);
+                    break;
 
-            case '*':
-                R = MultRac(X, Y);        
-            break;
+                case '*':
+                    result = MultRational(r1, r2);
+                    break;
 
-            case '/':
-                R = DivRac(X, Y);
-            break;
+                case '/':
+                    result = DivRational(r1, r2);
+                    break;
 
-            default: 
-            return 1;
+                default:
+                    return 1;
+            }
+            // Copia o resultado para simplificação (mantendo a lógica original da variável 'b')
+            copyResult = result;
+            rawResults[i] = result;
+            simplifiedResults[i] = SimplifyRational(copyResult);
         }
-        b = R;
-        Resultado [i] = R ;
-        ResultadoSimpl [i] = SimplRac(b);        
 
-        }
-    for (int i = 0;i < QuatTest; i++  ){
-        printf("%d/%d = %d/%d\n", Resultado[i].num, Resultado[i].den, 
-               ResultadoSimpl[i].num, ResultadoSimpl[i].den);            
+    // Loop de impressão dos resultados
+    for (int i = 0; i < testCases; i++) {
+        printf("%d/%d = %d/%d\n", rawResults[i].numerator, rawResults[i].denominator,
+               simplifiedResults[i].numerator, simplifiedResults[i].denominator);
     }
 
     return 0;
 }
-TRac SomaRac(TRac n1, TRac n2)
-{    TRac res;
-    res.num = n1.num * n2.den + n2.num * n1.den;
-    res.den = n1.den * n2.den;
 
+// Função de Adição
+TRational AddRational(TRational n1, TRational n2)
+{
+    TRational res;
+    res.numerator = n1.numerator * n2.denominator + n2.numerator * n1.denominator;
+    res.denominator = n1.denominator * n2.denominator;
     return res;
 }
-TRac SubtraiRac(TRac n1, TRac n2)
-{    TRac res;
-    res.num = n1.num * n2.den - n2.num * n1.den;
-    res.den = n1.den * n2.den;
 
+// Função de Subtração
+TRational SubRational(TRational n1, TRational n2)
+{
+    TRational res;
+    res.numerator = n1.numerator * n2.denominator - n2.numerator * n1.denominator;
+    res.denominator = n1.denominator * n2.denominator;
     return res;
 }
-TRac MultRac(TRac n1, TRac n2)
-{    TRac res;
-    res.num = n1.num * n2.num;
-    res.den = n1.den * n2.den;
 
+// Função de Multiplicação
+TRational MultRational(TRational n1, TRational n2)
+{
+    TRational res;
+    res.numerator = n1.numerator * n2.numerator;
+    res.denominator = n1.denominator * n2.denominator;
     return res;
 }
-TRac DivRac(TRac n1, TRac n2)
-{    TRac res;
-    res.num = n1.num * n2.den;
-    res.den = n2.num * n1.den;
 
+// Função de Divisão
+TRational DivRational(TRational n1, TRational n2)
+{
+    TRational res;
+    res.numerator = n1.numerator * n2.denominator;
+    res.denominator = n2.numerator * n1.denominator;
     return res;
 }
-TRac SimplRac(TRac n1)
-{    TRac res;
-    res.num = n1.num / mdc(n1.num, n1.den);
-    res.den = n1.den / mdc(n1.num, n1.den);
 
+// Função de Simplificação
+TRational SimplifyRational(TRational n1)
+{
+    TRational res;
+    res.numerator = n1.numerator / gcd(n1.numerator, n1.denominator);
+    res.denominator = n1.denominator / gcd(n1.numerator, n1.denominator);
     return res;
 }
-int mdc(int m, int n)
-{    if (m < 0) m = -m;
+
+// Função para calcular o Máximo Divisor Comum (GCD)
+int gcd(int m, int n)
+{
+    if (m < 0) m = -m;
     if (n < 0) n = -n;
     if (m % n == 0)
         return n;
     else
-        return mdc(n, m % n);
+        return gcd(n, m % n);
 }

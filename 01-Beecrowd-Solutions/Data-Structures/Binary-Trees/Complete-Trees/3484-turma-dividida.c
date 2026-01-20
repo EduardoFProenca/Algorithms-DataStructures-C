@@ -1,3 +1,19 @@
+/*
+Beecrowd : 3484 - Turma Dividida
+https://judge.beecrowd.com/pt/problems/view/3484
+
+**Explicação do Código:**
+Este programa resolve o problema de analisar uma "Turma Dividida" representada por uma Árvore Binária de Busca (BST).
+O objetivo é identificar o menor valor presente em cada nível da árvore.
+
+O fluxo do algoritmo é:
+1. Lê uma quantidade de números e os insere em uma Árvore Binária de Busca.
+2. Percorre a árvore utilizando uma busca em largura (BFS - Level Order Traversal) por meio de uma Fila.
+3. Para cada nível da árvore:
+   - Processa todos os nós pertencentes a esse nível.
+   - Encontra o menor valor (`min`) entre eles.
+   - Imprime o número do nível e o menor valor encontrado.
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,213 +27,218 @@
 #define FALSE 0
 #define QTDE_MAX 500
 
-struct regNo
+// Estrutura do nó da árvore binária
+struct TreeNode
 {
-	struct regNo *esq;
-	int valor;
-	struct regNo *dir;
+    struct TreeNode *left; // Filho à esquerda
+    int value;             // Valor armazenado
+    struct TreeNode *right;// Filho à direita
 };
-typedef struct regNo TNo;
+typedef struct TreeNode TNode;
 
-struct regLista
+// Estrutura do nó da fila (usada para BFS)
+struct QueueNode
 {
-	TNo *valor;
-	struct regLista *prox;
+    TNode *value; // Ponteiro para o nó da árvore
+    struct QueueNode *next;
 };
-typedef struct regLista TLista;
+typedef struct QueueNode TQueueNode;
 
-struct descrFila
+// Descritor da fila
+struct QueueDesc
 {
-	TLista *topo;
-	TLista *fim;
-	int qtde;
+    TQueueNode *front; // Início da fila
+    TQueueNode *rear;  // Fim da fila
+    int count;         // Quantidade de elementos
 };
-typedef struct descrFila DFila;
+typedef struct QueueDesc TQueue;
 
-int ExcluiItemFila(DFila *, char *);
-void InicializaFila(DFila *);
-int IncluiItemFila(DFila *, TNo *);
-TNo *DesemFilar(DFila *);
+// Protótipos das funções
+int ExcludeItemQueue(TQueue *, char *); // Mantido conforme original
+void InitializeQueue(TQueue *);
+int Enqueue(TQueue *, TNode *);
+TNode *Dequeue(TQueue *);
 
-TNo *AchaPai(TNo *, int);
+TNode *FindParent(TNode *, int);
 
-void ImprimeArvoreNvl(TNo *, int);
-int IncluiItem(TNo **, int);
-void DestroiLista(TNo *r, int n);
+void PrintTreeLevel(TNode *, int);
+int InsertNode(TNode **, int);
+void FreeTree(TNode *r, int n);
 
 int main(void)
 {
-	TNo *raiz = NULL;
-	int qt, numero, n;
+    TNode *root = NULL;
+    int qt, number, n;
 
-	//scanf(" %d", &qt);
+    scanf(" %d", &n);
 
-///	for(d = 0; d < qt; d++) {
-	scanf(" %d", &n);
+    for(int i = 0; i < n ; i++)
+    {
+        //printf("\nInforme o valor:\n");
+        scanf("%d", &number);
 
-	for(int i = 0; i < n ; i++)
-	{
-		//printf("\nInforme o valor:\n");
-		scanf("%d", &numero);
+        if (number == -999)
+            break;
 
-		if (numero == -999)
-			break;
+        if (InsertNode(&root, number) == FALSE)
+        {
+            puts("Memoria insuficiente para inclusao");
+            return 2;
+        }
+    }
 
-		if (IncluiItem(&raiz, numero) == FALSE)
-		{
-			puts("Memoria insuficiente para inclusao");
-			return 2;
-		}
-	}
-
-	ImprimeArvoreNvl(raiz, 0);
-	DestroiLista(raiz, 0);
-	raiz = NULL;
-	//}
+    PrintTreeLevel(root, 0);
+    FreeTree(root, 0);
+    root = NULL;
 
 
-	return 0;
+    return 0;
 }
 
-
-int IncluiItem(TNo **r, int n)
-{	TNo *aux, *pai;
-
-	aux = (TNo *) malloc(sizeof(TNo));
-	if (aux == NULL)
-		return FALSE;
-
-	aux->valor = n;
-	aux->dir = NULL;
-	aux->esq = NULL;
-
-	/* Fazendo o encadeamento do novo noh */
-	pai = AchaPai(*r, n);
-	if (pai == NULL)
-		*r = aux;
-	else if (n <= pai->valor)
-		pai->esq = aux;
-	else
-		pai->dir = aux;
-
-	return TRUE;
-}
-
-TNo *AchaPai(TNo *r, int n)
-{	if (r == NULL)
-		return NULL;
-	else if (n <= r->valor)
-		/* n C) descendente do lado esquerdo de r */
-		if (r->esq == NULL)
-			return r;
-		else
-			return AchaPai(r->esq, n);
-	else
-		/* n C) descendente do lado direito de r */
-		if (r->dir == NULL)
-			return r;
-		else
-			return AchaPai(r->dir, n);
-}
-
-
-
-
-void ImprimeArvoreNvl(TNo *r, int n)
+// Função para inserir um novo nó na árvore
+int InsertNode(TNode **rootRef, int n)
 {
-	DFila fila;
-	InicializaFila(&fila);
-	int nivel = 0;
+    TNode *newNode, *parent;
 
-	if (r != NULL)
-		IncluiItemFila(&fila, r);
+    newNode = (TNode *) malloc(sizeof(TNode));
+    if (newNode == NULL)
+        return FALSE;
 
-	while (fila.qtde > 0)
-	{
-		int noNivel = fila.qtde;
-		int menor = 9999;
+    newNode->value = n;
+    newNode->right = NULL;
+    newNode->left = NULL;
 
-		for (int i = 0; i < noNivel; i++)
-		{
-			TNo *atual = DesemFilar(&fila);
-			if (atual->valor < menor)
-				menor = atual->valor;
+    /* Fazendo o encadeamento do novo nó */
+    parent = FindParent(*rootRef, n);
+    if (parent == NULL)
+        *rootRef = newNode; // Se não tem pai, é a raiz
+    else if (n <= parent->value)
+        parent->left = newNode;
+    else
+        parent->right = newNode;
 
-			if (atual->esq != NULL)
-				IncluiItemFila(&fila, atual->esq);
-			if (atual->dir != NULL)
-				IncluiItemFila(&fila, atual->dir);
-		}
-
-		printf("%d %d\n", nivel, menor);
-		nivel++;
-	}
-}
-/// Fila
-
-void InicializaFila(DFila *lista)
-{
-	lista->topo = NULL;
-	lista->fim = NULL;
-	lista->qtde = 0;
+    return TRUE;
 }
 
-int IncluiItemFila(DFila *lista, TNo *valor)
+// Função para encontrar o pai onde inserir o novo nó
+TNode *FindParent(TNode *r, int n)
 {
-	TLista *novo = (TLista *)malloc(sizeof(TLista));
-
-	if (novo == NULL)
-	{
-		puts("Erro fatal: Memoria insuficiente para esta operacao");
-		return MEMORY_ERROR;
-	}
-	novo->valor = valor;
-	novo->prox = NULL;
-
-	if (lista->topo == NULL)
-	{
-		lista->topo = novo;
-		lista->fim = novo;
-	}
-	else
-	{
-		lista->fim->prox = novo;
-		lista->fim = novo;
-	}
-	lista->qtde++;
-	return TRUE;
+    if (r == NULL)
+        return NULL;
+    else if (n <= r->value)
+        /* n é descendente do lado esquerdo de r */
+        if (r->left == NULL)
+            return r;
+        else
+            return FindParent(r->left, n);
+    else
+        /* n é descendente do lado direito de r */
+        if (r->right == NULL)
+            return r;
+        else
+            return FindParent(r->right, n);
 }
 
-TNo *DesemFilar(DFila *lista)
+// Função que imprime o menor valor por nível da árvore
+void PrintTreeLevel(TNode *root, int unusedParam)
 {
-	if (lista->topo == NULL)
-		return NULL;
+    TQueue queue;
+    InitializeQueue(&queue);
+    int level = 0;
 
-	TLista *temp = lista->topo;
-	TNo *valor = temp->valor;
+    if (root != NULL)
+        Enqueue(&queue, root);
 
-	lista->topo = lista->topo->prox;
+    while (queue.count > 0)
+    {
+        // Número de nós no nível atual da árvore
+        int nodesAtLevel = queue.count;
+        // Inicializa o menor valor com um número alto conforme lógica original
+        int min = 9999;
 
-	if (lista->topo == NULL)
-		lista->fim = NULL;
+        // Processa todos os nós do nível atual
+        for (int i = 0; i < nodesAtLevel; i++)
+        {
+            TNode *currentNode = Dequeue(&queue);
+            
+            // Atualiza o menor valor encontrado neste nível
+            if (currentNode->value < min)
+                min = currentNode->value;
 
-	free(temp);
-	lista->qtde--;
+            // Adiciona os filhos à fila para o próximo nível
+            if (currentNode->left != NULL)
+                Enqueue(&queue, currentNode->left);
+            if (currentNode->right != NULL)
+                Enqueue(&queue, currentNode->right);
+        }
 
-	return valor;
+        // Imprime o nível e o menor valor encontrado nele
+        printf("%d %d\n", level, min);
+        level++;
+    }
 }
 
-void DestroiLista(TNo *r, int n)
+/// Funções da Fila (Queue)
+
+void InitializeQueue(TQueue *queue)
 {
+    queue->front = NULL;
+    queue->rear = NULL;
+    queue->count = 0;
+}
 
+int Enqueue(TQueue *queue, TNode *nodeValue)
+{
+    TQueueNode *newNode = (TQueueNode *)malloc(sizeof(TQueueNode));
 
-	if(r != NULL)
-	{
+    if (newNode == NULL)
+    {
+        puts("Erro fatal: Memoria insuficiente para esta operacao");
+        return MEMORY_ERROR;
+    }
+    newNode->value = nodeValue;
+    newNode->next = NULL;
 
-		DestroiLista(r->esq, n + 1);
-		DestroiLista(r->dir, n + 1);
+    if (queue->front == NULL)
+    {
+        queue->front = newNode;
+        queue->rear = newNode;
+    }
+    else
+    {
+        queue->rear->next = newNode;
+        queue->rear = newNode;
+    }
+    queue->count++;
+    return TRUE;
+}
 
-		free(r);
-	}
+TNode *Dequeue(TQueue *queue)
+{
+    if (queue->front == NULL)
+        return NULL;
 
+    TQueueNode *temp = queue->front;
+    TNode *nodeValue = temp->value;
+
+    queue->front = queue->front->next;
+
+    if (queue->front == NULL)
+        queue->rear = NULL;
+
+    free(temp);
+    queue->count--;
+
+    return nodeValue;
+}
+
+// Função para liberar a memória da árvore
+void FreeTree(TNode *r, int n)
+{
+    if(r != NULL)
+    {
+        FreeTree(r->left, n + 1);
+        FreeTree(r->right, n + 1);
+        free(r);
+    }
 }

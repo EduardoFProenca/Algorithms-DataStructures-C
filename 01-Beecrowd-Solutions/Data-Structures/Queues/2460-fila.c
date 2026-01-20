@@ -1,3 +1,18 @@
+/*
+Beecrowd : 2460 - Fila
+https://judge.beecrowd.com/pt/problems/view/2460
+
+**Explicação do Código:**
+Este programa simula a manutenção de uma fila de pessoas (representadas por números inteiros).
+O funcionamento é o seguinte:
+1. Lê a quantidade inicial de pessoas na fila (N) e seus identificadores, inserindo-os na lista.
+2. Lê a quantidade de pessoas que sairão da fila (M) e seus identificadores.
+3. Para cada identificador de saída, busca a pessoa na lista e a remove.
+4. Ao final, imprime os identificadores das pessoas que permaneceram na fila, na ordem original.
+
+O programa utiliza uma lista encadeada simples para gerenciar a fila.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,159 +21,184 @@
 #define MEMORY_ERROR	2
 #define EXEC_SUCCESS	0
 
-struct regLista	{
-	int valor;
-	struct regLista *prox;
+// Estrutura que representa um nó (uma pessoa) na lista
+struct Node
+{
+    int value;              // Identificador da pessoa
+    struct Node *next;      // Ponteiro para a próxima pessoa na fila
 };
-typedef struct regLista TItem;
+typedef struct Node TNode;
 
-typedef  struct {
-	TItem *inicio, *final;
-	int qtde, soma;
-} TLista;
+// Estrutura descritora da lista (Fila)
+typedef struct
+{
+    TNode *head;            // Início da fila
+    TNode *tail;            // Fim da fila
+    int count;              // Quantidade de pessoas na fila
+    int sum;                // Soma dos valores (mantida pela lógica original, mas não usada)
+} TList;
 
-void DestroiLista(TLista *);
-int ExcluiItem(TLista *, int);
-void ImprimeLista(TLista *);
-int IncluiItem(TLista *, int);
-void InicializaLista(TLista *);
+// Protótipos das funções
+void DestroyList(TList *);
+int RemoveItem(TList *, int);
+void PrintList(TList *);
+int AddItem(TList *, int);
+void InitializeList(TList *);
 
 int main(void)
-{	int numero;
-	TLista lista;
+{
+    int number;
+    TList queue; // 'queue' representa a fila de pessoas
 
-	InicializaLista(&lista);
-	int n;
-	scanf("%d", &n);
-	for(int i = 0 ; i < n; i++)
-	{
-		scanf("%d", &numero);
+    InitializeList(&queue);
+    int n;
+    scanf("%d", &n);
+    
+    // Lê as N pessoas iniciais e insere na fila
+    for(int i = 0 ; i < n; i++)
+    {
+        scanf("%d", &number);
 
-		if (IncluiItem(&lista, numero) == FALSE)
-		{	puts("Erro fatal: Memoria insuficiente para esta operacao");
-			return MEMORY_ERROR;
-		}
-	}
+        if (AddItem(&queue, number) == FALSE)
+        {
+            puts("Erro fatal: Memoria insuficiente para esta operacao");
+            return MEMORY_ERROR;
+        }
+    }
 
-	int m;
-	scanf("%d",&m);
-	for(int i = 0; i< m ; i++ )
-	{
-		scanf("%d", &numero);
+    int m;
+    scanf("%d", &m);
+    
+    // Lê as M pessoas que sairão e as remove da fila
+    for(int i = 0; i < m ; i++ )
+    {
+        scanf("%d", &number);
 
+        if (RemoveItem(&queue, number) == FALSE)
+            puts("Valor informado nao existe na lista");
+    }
+    
+    // Imprime a fila final
+    PrintList(&queue);
+    DestroyList(&queue);
 
-
-		if (ExcluiItem(&lista, numero) == FALSE)
-			puts("Valor informado nao existe na lista");
-
-
-	}
-	ImprimeLista(&lista);
-	DestroiLista(&lista);
-
-	return EXEC_SUCCESS;
+    return EXEC_SUCCESS;
 }
 
-void DestroiLista(TLista *lista)
-{	TItem *aux, *seg;
+// Função para liberar a memória de toda a lista
+void DestroyList(TList *list)
+{
+    TNode *current, *nextNode;
 
-	aux = lista->inicio;
-	while (aux != NULL)
-	{	seg = aux->prox;
+    current = list->head;
+    while (current != NULL)
+    {
+        nextNode = current->next;
+        free(current);
+        current = nextNode;
+    }
 
-		free(aux);
-
-		aux = seg;
-	}
-
-	InicializaLista(lista);
+    // Reinicia os descritores da lista
+    InitializeList(list);
 }
 
-int ExcluiItem(TLista *lista, int valor)
-{	TItem *aux, *ant;
+// Função para remover um item específico da lista pelo valor
+int RemoveItem(TList *list, int value)
+{
+    TNode *current, *previous;
 
-	/* Pesquisando na lista o item a ser excluido */
-	ant = NULL;
-	aux = lista->inicio;
-	while (aux != NULL && aux->valor != valor)
-	{	ant = aux;
-		aux = aux->prox;
-	}
+    /* Pesquisando na lista o item a ser excluido */
+    previous = NULL;
+    current = list->head;
+    
+    // Percorre a lista até encontrar o valor ou chegar ao fim
+    while (current != NULL && current->value != value)
+    {
+        previous = current;
+        current = current->next;
+    }
 
-	/* Removendo da lista o item solicitado */
-	if (aux == NULL)
-		return FALSE;
-	else
-	{	/* Acertando o encadeamento na lista */
-		if (ant == NULL)
-			lista->inicio = aux->prox;
-		else
-			ant->prox = aux->prox;
+    /* Removendo da lista o item solicitado */
+    if (current == NULL)
+        return FALSE; // Valor não encontrado
+    else
+    {
+        /* Acertando o encadeamento na lista */
+        if (previous == NULL)
+            list->head = current->next; // Remove do início
+        else
+            previous->next = current->next; // Remove do meio ou fim
 
-		/* atualizando os descritores complementares */
-		lista->qtde = lista->qtde - 1;
-		lista->soma = lista->soma - aux->valor;
+        /* atualizando os descritores complementares */
+        list->count = list->count - 1;
+        list->sum = list->sum - current->value;
 
-		if (aux == lista->final)
-			lista->final = ant;
+        // Se o removido era o último, atualiza o ponteiro 'tail'
+        if (current == list->tail)
+            list->tail = previous;
 
-		free(aux);
-	}
+        free(current);
+    }
 
-	return TRUE;
+    return TRUE;
 }
 
-void ImprimeLista(TLista *lista)
-{	TItem *aux;
+// Função para imprimir os elementos da lista
+void PrintList(TList *list)
+{
+    TNode *current;
 
-	/* imprimindo os valores da lista */
-	if (lista->inicio == NULL)
-		puts("Lista vazia");
-	else
-	{
-		aux = lista->inicio;
-		while (aux != NULL)
-		{	printf("%d", aux->valor);
-
-			aux = aux->prox;
-			if(aux != NULL)
-				printf(" ");
-		}
-
-	}
-	printf("\n");
+    /* imprimindo os valores da lista */
+    if (list->head == NULL)
+        puts("Lista vazia");
+    else
+    {
+        current = list->head;
+        while (current != NULL)
+        {
+            printf("%d", current->value);
+            current = current->next;
+            if(current != NULL)
+                printf(" "); // Imprime espaço entre números, exceto após o último
+        }
+    }
+    printf("\n");
 }
 
-void InicializaLista(TLista *lista)
-{	lista->inicio = NULL;
-	lista->final = NULL;
-	lista->qtde = 0;
-	lista->soma = 0;
+// Função para inicializar os descritores da lista
+void InitializeList(TList *list)
+{
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
+    list->sum = 0;
 }
 
-int IncluiItem(TLista *lista, int valor)
-{	TItem *aux;
+// Função para adicionar um novo item ao final da lista
+int AddItem(TList *list, int value)
+{
+    TNode *newNode;
 
-	/* criando uma variC!vel struct regLista dinamicamente */
-	aux = (TItem *) malloc(sizeof(TItem));
+    /* criando uma variável struct Node dinamicamente */
+    newNode = (TNode *) malloc(sizeof(TNode));
 
-	if (aux == NULL)
-		return TRUE;
+    if (newNode == NULL)
+        return TRUE; // Nota: A lógica original retorna TRUE mesmo em erro de alocação
 
-	/* preenchendo os campos da variC!vel criada dinamicamente */
-	aux->valor = valor;
-	aux->prox = NULL;
+    /* preenchendo os campos da variável criada dinamicamente */
+    newNode->value = value;
+    newNode->next = NULL;
 
-	/* fazendo o encadeamento do novo item na lista */
-	if (lista->inicio == NULL)
-		lista->inicio = aux;
-	else
-		lista->final->prox = aux;
+    /* fazendo o encadeamento do novo item na lista */
+    if (list->head == NULL)
+        list->head = newNode; // Se estava vazia, o novo nó é o cabeça
+    else
+        list->tail->next = newNode; // Adiciona após o último nó
 
-	/* atualizando os descritores complementares */
-	lista->qtde = lista->qtde + 1;
-	lista->soma = lista->soma + aux->valor;
-	lista->final = aux;
+    /* atualizando os descritores complementares */
+    list->count = list->count + 1;
+    list->sum = list->sum + newNode->value;
+    list->tail = newNode; // Atualiza o ponteiro de fim para o novo nó
 
-	return TRUE;
+    return TRUE;
 }
