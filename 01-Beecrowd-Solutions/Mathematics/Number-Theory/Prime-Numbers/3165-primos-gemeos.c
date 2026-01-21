@@ -1,3 +1,19 @@
+/*
+Beecrowd : 3165 - Primos Gêmeos
+https://judge.beecrowd.com/pt/problems/view/3165
+
+**Explicação do Código:**
+Este programa lê um número inteiro e encontra o maior par de primos gêmeos (twin primes)
+que seja menor ou igual a esse número.
+Primos gêmeos são dois números primos que possuem uma diferença de 2 entre si (ex: 3 e 5, 11 e 13).
+
+A lógica do algoritmo é a seguinte:
+1. Lê um número inteiro `number`.
+2. Verifica se o número está dentro do intervalo permitido (5 a 1000).
+3. Executa um loop decrementando o número a partir do valor de entrada até que seja encontrada
+   uma situação onde `number` é primo E `number - 2` também é primo.
+4. Quando esse par é encontrado, imprime os dois valores (`number - 2` e `number`).
+*/
 
 #include <stdio.h>
 #include <math.h>
@@ -5,37 +21,42 @@
 #define TRUE  1
 #define FALSE 0
 
-char is_prime(int n);
+char IsPrime(int n);
 
 int main(int argc, char *argv[])
 {
-	int num;
+    int number;
 
-	scanf(" %d", &num);
+    scanf(" %d", &number);
 
-	if( 5  <=  num &&  num <= 1000  ) {
-		while(num > 0) {
-			if (is_prime(num) && is_prime(num- 2)) {
+    // Verifica se o número está dentro das restrições do problema
+    if(5 <= number && number <= 1000) {
+        // Loop regressivo procurando o par de primos gêmeos
+        while(number > 0) {
+            // Verifica se o número atual e o número duas unidades menor são primos
+            if (IsPrime(number) && IsPrime(number - 2)) {
+                break;
+            }
+            number--;
+        }
+        // Imprime o par encontrado (menor, maior)
+        printf("%d %d\n", number - 2, number);
+    }
 
-				break;
-			}
-			num--;
-		}
-		printf("%d %d\n", num - 2, num);
-	}
-
-	return 0;
+    return 0;
 }
 
-char is_prime(int n)
-/* Retorna TRUE se n for um nC:mero primo */
-{	int p, maxP = sqrt(n) + 2;
+char IsPrime(int n)
+/* Retorna TRUE se n for um número primo */
+{	
+    int i, limit = sqrt(n) + 2;
 
-	if (n < 0) return is_prime(-n);
-	if (n < 5 || !(n % 2) || !(n % 3)) return (n == 2 || n == 3);
+    if (n < 0) return IsPrime(-n);
+    if (n < 5 || !(n % 2) || !(n % 3)) return (n == 2 || n == 3);
 
-	for (p = 5; p < maxP; p += 6)
-		if ((!(n % p)) || (!(n % (p + 2)))) return FALSE;
+    // Otimização: verificando divisores de 6k ± 1
+    for (i = 5; i < limit; i += 6)
+        if ((!(n % i)) || (!(n % (i + 2)))) return FALSE;
 
-	return TRUE;
+    return TRUE;
 }
