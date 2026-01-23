@@ -1,3 +1,30 @@
+/*
+ * 
+ * Este programa implementa uma Árvore Binária de Busca (BST - Binary Search Tree)
+ * para gerenciar um conjunto de números inteiros.
+ *
+ * CARACTERÍSTICAS DA IMPLEMENTAÇÃO:
+ * 1. ESTRUTURA DE NÓ:
+ *    - Cada nó contém ponteiros para filhos à esquerda (menores) e direita (maiores).
+ *    - Contém um ponteiro para o nó pai (permitindo navegação ascendente).
+ *    - Possui um contador 'count' para lidar com duplicatas. Se um valor já existe,
+ *      não cria um novo nó, apenas incrementa este contador.
+ *
+ * 2. OPERAÇÕES PRINCIPAIS:
+ *    - INSERÇÃO: Usa a lógica da BST para encontrar a posição correta e recursão
+ *      para buscar o pai. Verifica duplicatas.
+ *    - IMPRESSÃO: Exibe a árvore de forma visual (rotacionada 90 graus) usando
+ *      travessia "in-order" (Esquerda -> Raiz -> Direita) com indentação
+ *      proporcional à profundidade.
+ *    - BUSCA: Localiza um valor específico.
+ *    - ANCESTRAIS: Imprime o caminho de um nó até a raiz, mostrando a hierarquia.
+ *
+ * 3. CONTAGENS:
+ *    - Conta Nós: Quantos valores únicos existem.
+ *    - Conta Valores: Soma total de inserções (único + repetições).
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,45 +33,45 @@
 #define TRUE 1
 
 // Estrutura do nó da Árvore Binária de Busca (BST)
-struct regNo
+struct Node
 {
-    struct regNo *esq;  // Ponteiro para o filho à esquerda (menores)
-    int valor;          // Valor armazenado no nó
-    int quantidade;     // Contador de frequência do valor (para duplicatas)
-    struct regNo *pai;  // Ponteiro para o nó pai
-    struct regNo *dir;  // Ponteiro para o filho à direita (maiores)
+    struct Node *left;   // Ponteiro para o filho à esquerda (menores)
+    int value;           // Valor armazenado no nó
+    int count;           // Contador de frequência do valor (para duplicatas)
+    struct Node *parent; // Ponteiro para o nó pai
+    struct Node *right;  // Ponteiro para o filho à direita (maiores)
 };
-typedef struct regNo TNo;
+typedef struct Node TNode;
 
 // Protótipos das funções utilizadas no programa
-TNo *AchaPai(TNo *, int);              // Encontra o nó pai para um novo valor
-int ContaNos(TNo *);                    // Conta o número total de nós únicos na árvore
-int ContaValores(TNo *);                // Conta o total de valores inseridos (soma das quantidades)
-void Impressao(TNo *);                  // Função wrapper para imprimir a árvore
-void ImprimeAncestrais(TNo *);          // Imprime o caminho do nó até a raiz
-void ImprimeArvore(TNo *, int);         // Imprime a árvore visualmente com indentação
-int IncluiItem(TNo **, int);            // Insere um novo valor ou incrementa a quantidade se existir
-TNo *PesquisaValor(TNo *, int);         // Busca um valor específico na árvore
+TNode *FindParent(TNode *, int);           // Encontra o nó pai para um novo valor
+int CountNodes(TNode *);                   // Conta o número total de nós únicos na árvore
+int CountTotalValues(TNode *);             // Conta o total de valores inseridos (soma das quantidades)
+void PrintTreeInfo(TNode *);               // Função wrapper para imprimir a árvore
+void PrintAncestors(TNode *);              // Imprime o caminho do nó até a raiz
+void PrintTreeStructure(TNode *, int);     // Imprime a árvore visualmente com indentação
+int InsertItem(TNode **, int);             // Insere um novo valor ou incrementa a quantidade se existir
+TNode *SearchValue(TNode *, int);         // Busca um valor específico na árvore
 
 // Ponteiro global para a raiz da árvore
-TNo *raiz = NULL;
+TNode *root = NULL;
 
 int main(void)
 {
-    int numero;
+    int number;
 
     // Loop principal para inserção de dados
     while (TRUE)
     {
         printf("\nInforme o valor:\n");
-        scanf("%d", &numero);
+        scanf("%d", &number);
 
         // Condição de parada para a inserção: digitar -999
-        if (numero == -999)
+        if (number == -999)
             break;
 
         // Tenta incluir o número na árvore
-        if (IncluiItem(&raiz, numero) == FALSE)
+        if (InsertItem(&root, number) == FALSE)
         {
             puts("Memoria insuficiente para inclusao");
             return 2;
@@ -52,25 +79,25 @@ int main(void)
     }
 
     // Imprime a estrutura da árvore após a inserção de todos os números
-    Impressao(raiz);
+    PrintTreeInfo(root);
 
     // Loop principal para pesquisa de dados
     while (TRUE)
     {
         printf("\nPesquisa um valor:\n");
-        scanf("%d", &numero);
+        scanf("%d", &number);
 
         // Condição de parada para a pesquisa: digitar -999
-        if (numero == -999)
+        if (number == -999)
             break;
 
         // Busca o valor na árvore
-        if (PesquisaValor(raiz, numero) == NULL)
-            printf("Valor %d nao encontrado na arvore\n", numero);
+        if (SearchValue(root, number) == NULL)
+            printf("Valor %d nao encontrado na arvore\n", number);
         else
         {
             // Se encontrado, imprime os ancestrais (caminho até a raiz)
-            ImprimeAncestrais(PesquisaValor(raiz, numero));
+            PrintAncestors(SearchValue(root, number));
             printf("\n");
         }
     }
@@ -79,159 +106,158 @@ int main(void)
 }
 
 // Função recursiva para encontrar qual nó deve ser o pai de um novo valor 'n'
-TNo *AchaPai(TNo *r, int n)
+TNode *FindParent(TNode *r, int n)
 {
     if (r == NULL)
         return NULL;
-    else if (n <= r->valor)
+    else if (n <= r->value)
         /* Se o valor 'n' é menor ou igual, deve ir para a esquerda */
-        if (r->esq == NULL)
+        if (r->left == NULL)
             return r; // Se não tem filho esquerdo, este nó 'r' é o pai
         else
-            return AchaPai(r->esq, n); // Se tem, desce à esquerda
+            return FindParent(r->left, n); // Se tem, desce à esquerda
     else
         /* Se o valor 'n' é maior, deve ir para a direita */
-        if (r->dir == NULL)
+        if (r->right == NULL)
             return r; // Se não tem filho direito, este nó 'r' é o pai
         else
-            return AchaPai(r->dir, n); // Se tem, desce à direita
+            return FindParent(r->right, n); // Se tem, desce à direita
 }
 
 // Função recursiva para contar quantos nós (estruturas) existem na árvore
-int ContaNos(TNo *r)
+int CountNodes(TNode *r)
 {
     if (r == NULL)
         return 0;
     else
-        return 1 + ContaNos(r->esq) + ContaNos(r->dir);
+        return 1 + CountNodes(r->left) + CountNodes(r->right);
 }
 
 // Função que prepara e chama a impressão da árvore
-void Impressao(TNo *r)
+void PrintTreeInfo(TNode *r)
 {
     if (r == NULL)
         puts("Arvore vazia");
     else
     {
         // Imprime o total de nós (distintos) e o total de valores (incluindo repetições)
-        printf("A arvore possui %d nos e %d valores:\n ", ContaNos(r), ContaValores(raiz));
-        ImprimeArvore(r, 0);
+        printf("A arvore possui %d nos e %d valores:\n ", CountNodes(r), CountTotalValues(root));
+        PrintTreeStructure(r, 0);
     }
 }
 
 // Função recursiva para imprimir a árvore em ordem (esquerda, nó, direita) com indentação
-void ImprimeArvore(TNo *r, int n)
+void PrintTreeStructure(TNode *r, int level)
 {
-    int c;
+    int i;
 
     if (r != NULL)
     {
         // Primeiro imprime a subárvore esquerda (recursivamente)
-        ImprimeArvore(r->esq, n + 1);
+        PrintTreeStructure(r->left, level + 1);
 
-        // Imprime espaços proporcional à profundidade 'n' para criar efeito visual
-        for (c = 0; c < n; c++)
+        // Imprime espaços proporcional à profundidade 'level' para criar efeito visual
+        for (i = 0; i < level; i++)
             printf("  ");
         
         // Imprime o valor do nó
-        printf("%d", r->valor);
+        printf("%d", r->value);
         
         // Se a quantidade for maior que 1, significa que o número foi inserido múltiplas vezes
-        if (r->quantidade != 1)
-            printf(" [%d] \n", r->quantidade);
+        if (r->count != 1)
+            printf(" [%d] \n", r->count);
         else
             printf("\n");
 
         // Por fim, imprime a subárvore direita (recursivamente)
-        ImprimeArvore(r->dir, n + 1);
+        PrintTreeStructure(r->right, level + 1);
     }
 }
 
 // Função para incluir um novo item na árvore
-int IncluiItem(TNo **r, int n)
+int InsertItem(TNode **r, int n)
 {
-    TNo *aux, *pai;
+    TNode *newNode, *parentNode;
 
     // Aloca memória para o novo nó
-    aux = (TNo *)malloc(sizeof(TNo));
-    if (aux == NULL)
+    newNode = (TNode *)malloc(sizeof(TNode));
+    if (newNode == NULL)
         return FALSE; // Falha na alocação de memória
 
     // Verifica se o valor já existe na árvore
-    if (PesquisaValor(*r, n) != NULL)
+    if (SearchValue(*r, n) != NULL)
     {
         // Se já existe, apenas incrementa o contador de quantidade
-        PesquisaValor(*r, n)->quantidade += 1;
-        free(aux); // Libera a memória alocada desnecessariamente
+        SearchValue(*r, n)->count += 1;
+        free(newNode); // Libera a memória alocada desnecessariamente
         return TRUE;
     }
     
     // Se não existe, preenche os dados do novo nó
-    aux->valor = n;
-    aux->quantidade = 1;
-    aux->dir = NULL;
-    aux->esq = NULL;
+    newNode->value = n;
+    newNode->count = 1;
+    newNode->right = NULL;
+    newNode->left = NULL;
 
     /* Encontrando e fazendo o encadeamento do novo nó */
-    pai = AchaPai(*r, n);
+    parentNode = FindParent(*r, n);
     
     // Se o pai for NULL, a árvore estava vazia, este é o novo nó raiz
-    if (pai == NULL)
+    if (parentNode == NULL)
     {
-        *r = aux;
-        aux->pai = NULL;
+        *r = newNode;
+        newNode->parent = NULL;
         return TRUE;
     }
-    else if (n <= pai->valor)
+    else if (n <= parentNode->value)
         // Se o valor é menor ou igual ao pai, insere à esquerda
-        pai->esq = aux;
+        parentNode->left = newNode;
     else
         // Se o valor é maior, insere à direita
-        pai->dir = aux;
+        parentNode->right = newNode;
 
     // Define o ponteiro pai do novo nó
-    aux->pai = pai;
+    newNode->parent = parentNode;
     return TRUE;
 }
 
 // Função recursiva para buscar um valor na árvore
-TNo *PesquisaValor(TNo *r, int n)
+TNode *SearchValue(TNode *r, int n)
 {
     // Se chegou numa folha (NULL) ou encontrou o valor, retorna o ponteiro atual
-    if (r == NULL || r->valor == n)
+    if (r == NULL || r->value == n)
         return r;
 
-    if (n < r->valor)
+    if (n < r->value)
         // Se o valor buscado é menor, busca na esquerda
-        return PesquisaValor(r->esq, n);
+        return SearchValue(r->left, n);
     else
         // Se é maior, busca na direita
-        return PesquisaValor(r->dir, n);
+        return SearchValue(r->right, n);
 }
 
 // Função recursiva para imprimir os ancestrais de um nó (do nó até a raiz)
-void ImprimeAncestrais(TNo *r)
+void PrintAncestors(TNode *r)
 {
     // Caso base: chegou na raiz (pai é NULL)
-    if (r->pai == NULL)
-        printf("%d <- Raiz", r->valor);
+    if (r->parent == NULL)
+        printf("%d <- Raiz", r->value);
     
 
     // Se ainda não chegou na raiz, imprime o valor atual e chama recursivamente para o pai
-    if (r->pai != NULL)
+    if (r->parent != NULL)
     {
-        printf("%d <- ", r->valor);
-        ImprimeAncestrais(r->pai);
+        printf("%d <- ", r->value);
+        PrintAncestors(r->parent);
     }
 }
 
-// Função recursiva que soma o campo 'quantidade' de todos os nós
+// Função recursiva que soma o campo 'count' de todos os nós
 // Isso retorna o número total de itens inseridos, contando repetições
-int ContaValores(TNo *r)
+int CountTotalValues(TNode *r)
 {
     if (r == NULL)
         return 0;
     else
-        return r->quantidade + ContaValores(r->esq) + ContaValores(r->dir);
-    
+        return r->count + CountTotalValues(r->left) + CountTotalValues(r->right);
 }

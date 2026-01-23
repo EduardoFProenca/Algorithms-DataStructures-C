@@ -1,3 +1,29 @@
+/*
+ * Este programa implementa uma Árvore Binária **Completa** (Complete Binary Tree),
+ * onde a inserção de novos nós sempre busca a primeira posição disponível
+ * nível por nível, da esquerda para a direita.
+ *
+ * DIFERENÇA PARA BST (Árvore de Busca Binária):
+ * - Em uma BST, valores menores ficam à esquerda e maiores à direita.
+ * - NESTE CÓDIGO, a inserção não considera o valor numérico para posicionamento,
+ *   apenas mantém a estrutura cheia. Portanto, a busca é feita percorrendo
+ *   toda a árvore (se necessário) e não apenas um ramo.
+ *
+ * ESTRUTURAS UTILIZADAS:
+ * 1. ÁRVORE BINÁRIA (Nós com ponteiros para esquerda e direita).
+ * 2. FILA DINÂMICA (Lista Encadeada): Utilizada para a impressão da árvore
+ *    por níveis (Breadth-First Search - BFS).
+ * 3. FILA ESTÁTICA (Array): Utilizada internamente na função `FindParent`
+ *    para localizar o próximo local de inserção vazio.
+ *
+ * FUNCIONALIDADES:
+ * - Inserção de valores (-999 encerra).
+ * - Impressão da árvore por níveis.
+ * - Estatísticas: Total de nós, Altura (considerando o ramo esquerdo), Quantidade de pares.
+ * - Busca de valores (retorna se existe ou não).
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -11,67 +37,67 @@
 #define TRUE 1
 #define FALSE 0
 // Capacidade máxima para filas auxiliares estáticas
-#define QTDE_MAX 500
+#define MAX_QTY 500
 
 // Estrutura do Nó da Árvore Binária
-struct regNo
+struct Node
 {
-    struct regNo *esq; // Ponteiro para o filho à esquerda
-    int valor;         // Valor armazenado no nó
-    struct regNo *dir; // Ponteiro para o filho à direita
+    struct Node *left;  // Ponteiro para o filho à esquerda
+    int value;          // Valor armazenado no nó
+    struct Node *right; // Ponteiro para o filho à direita
 };
-typedef struct regNo TNo;
+typedef struct Node TNode;
 
 // Estrutura de um Nó da Lista Encadeada (usada para implementar a Fila)
-struct regLista
+struct ListNode
 {
-    TNo *valor;             // Ponteiro para um nó da árvore
-    struct regLista *prox;  // Ponteiro para o próximo elemento da lista/fila
+    TNode *nodeValue;        // Ponteiro para um nó da árvore
+    struct ListNode *next;   // Ponteiro para o próximo elemento da lista/fila
 };
-typedef struct regLista TLista;
+typedef struct ListNode TList;
 
 // Descritor da Fila (controla o início, fim e quantidade)
-struct descrFila
+struct QueueDescriptor
 {
-    TLista *topo; // Ponteiro para o início da fila
-    TLista *fim;  // Ponteiro para o fim da fila
-    int qtde;     // Contador de elementos na fila
+    TList *head; // Ponteiro para o início da fila
+    TList *tail; // Ponteiro para o fim da fila
+    int count;   // Contador de elementos na fila
 };
-typedef struct descrFila DFila;
+typedef struct QueueDescriptor DQueue;
 
 // Protótipos das funções
-int ExcluiItemFila(DFila *, char *);      // Protótipo declarado mas não implementado/utilizado no código
-void InicializaFila(DFila *);             // Inicializa a fila vazia
-int IncluiItemFila(DFila *, TNo *);       // Enfileira um nó da árvore
-TNo *DesemFilar(DFila *);                 // Desenfileira (remove e retorna) um nó da árvore
+int DequeueItem(DQueue *, char *);           // Protótipo declarado mas não implementado
+void InitializeQueue(DQueue *);               // Inicializa a fila vazia
+int EnqueueItem(DQueue *, TNode *);           // Enfileira um nó da árvore
+TNode *Dequeue(DQueue *);                    // Desenfileira (remove e retorna) um nó da árvore
 
-TNo *AchaPai(TNo *, int);                 // Encontra o local correto para inserção (árvore completa)
-int AlturaArv(TNo *);                     // Calcula a altura da árvore (baseada na esquerda)
-int ContaNos(TNo *);                      // Conta o total de nós
-int ContaPares(TNo *);                    // Conta quantos valores são pares
-void ImprimeArvoreNvl(TNo *, int);        // Imprime a árvore por níveis (BFS)
-int IncluiItem(TNo **, int);              // Insere um novo valor na árvore
-int PesquisaValor(TNo *, int);            // Busca um valor na árvore (genérico)
+TNode *FindParent(TNode *, int);              // Encontra o local correto para inserção (árvore completa)
+int GetTreeHeight(TNode *);                  // Calcula a altura da árvore (baseada na esquerda)
+int CountNodes(TNode *);                     // Conta o total de nós
+int CountEvens(TNode *);                     // Conta quantos valores são pares
+void PrintTreeLevelOrder(TNode *, int);         // Imprime a árvore por níveis (BFS)
+int InsertNode(TNode **, int);               // Insere um novo valor na árvore
+int SearchValue(TNode *, int);               // Busca um valor na árvore (genérico, não BST)
 
 int main(void)
 {
     // Ponteiro para a raiz da árvore, inicialmente nulo
-    TNo *raiz = NULL;
+    TNode *root = NULL;
 
-    int numero;
+    int number;
 
     // Loop para leitura e inserção de valores
     while (TRUE)
     {
         printf("\nInforme o valor:\n");
-        scanf("%d", &numero);
+        scanf("%d", &number);
 
         // Condição de parada: -999
-        if (numero == -999)
+        if (number == -999)
             break;
 
         // Tenta inserir o valor na árvore
-        if (IncluiItem(&raiz, numero) == FALSE)
+        if (InsertNode(&root, number) == FALSE)
         {
             puts("Memoria insuficiente para inclusao");
             return 2;
@@ -80,27 +106,27 @@ int main(void)
 
     // Exibe o conteúdo e as estatísticas da árvore
     printf("\n\nConteudo da arvore\n");
-    ImprimeArvoreNvl(raiz, 0);
+    PrintTreeLevelOrder(root, 0);
     printf("\n\nResumo\n");
-    printf("  Qtde nos: %3d\n", ContaNos(raiz));
-    printf("  Altura .: %3d\n", AlturaArv(raiz));
-    printf("  Pares ..: %3d\n", ContaPares(raiz));
+    printf("  Qtde nos: %3d\n", CountNodes(root));
+    printf("  Altura .: %3d\n", GetTreeHeight(root));
+    printf("  Pares ..: %3d\n", CountEvens(root));
     printf("\n");
 
     // Loop para pesquisa de valores
     while (TRUE)
     {
         printf("\nPesquisa um valor:\n");
-        scanf("%d", &numero);
+        scanf("%d", &number);
 
-        if (numero == -999)
+        if (number == -999)
             break;
 
         // A pesquisa retorna TRUE ou FALSE
-        if (PesquisaValor(raiz, numero) == FALSE)
-            printf("Valor %d nao existe na arvore\n", numero);
+        if (SearchValue(root, number) == FALSE)
+            printf("Valor %d nao existe na arvore\n", number);
         else
-            printf("%d encontrado\n", numero);
+            printf("%d encontrado\n", number);
     }
 
     return 0;
@@ -109,112 +135,112 @@ int main(void)
 // Função para encontrar o nó pai onde o novo valor deve ser inserido.
 // Este algoritmo tenta manter a árvore "cheia" (Complete Binary Tree),
 // preenchendo nível por nível da esquerda para a direita.
-TNo *AchaPai(TNo *r, int n)
+TNode *FindParent(TNode *r, int n)
 {
     // Fila estática auxiliar para fazer uma busca em largura (BFS)
-    TNo *fila[QTDE_MAX], *aux;
-    int inicio, final;
+    TNode *queueArray[MAX_QTY], *current;
+    int start, end;
 
     if (r == NULL)
         return NULL;
 
-    inicio = final = 0;
-    aux = r;
+    start = end = 0;
+    current = r;
     
     // Percorre a árvore procurando o primeiro nó que tem espaço vazio (esq ou dir nulo)
     // O loop continua enquanto o nó atual tiver ambos os filhos preenchidos
-    while (aux->esq != NULL && aux->dir != NULL)
+    while (current->left != NULL && current->right != NULL)
     {
         // Adiciona os filhos à fila local para visitá-los depois
-        fila[final++] = aux->esq;
-        fila[final++] = aux->dir;
+        queueArray[end++] = current->left;
+        queueArray[end++] = current->right;
 
         // Pega o próximo nó da fila
-        aux = fila[inicio++];
+        current = queueArray[start++];
     }
 
     // Retorna o nó que possui um filho livre para receber o novo nó
-    return aux;
+    return current;
 }
 
 // Função de inclusão de um novo item na árvore
-int IncluiItem(TNo **r, int n)
+int InsertNode(TNode **r, int n)
 {
-    TNo *aux, *pai;
+    TNode *newNode, *parentNode;
 
     // Aloca memória para o novo nó
-    aux = (TNo *)malloc(sizeof(TNo));
-    if (aux == NULL)
+    newNode = (TNode *)malloc(sizeof(TNode));
+    if (newNode == NULL)
         return FALSE;
 
-    aux->valor = n;
-    aux->dir = NULL;
-    aux->esq = NULL;
+    newNode->value = n;
+    newNode->right = NULL;
+    newNode->left = NULL;
 
     // Encontra o pai correto usando a lógica de árvore completa
-    pai = AchaPai(*r, n);
+    parentNode = FindParent(*r, n);
     
     // Se o pai for NULL, a árvore estava vazia. O novo nó é a raiz.
-    if (pai == NULL)
-        *r = aux;
+    if (parentNode == NULL)
+        *r = newNode;
     // Se o filho à esquerda do pai estiver livre, insere lá
-    else if (pai->esq == NULL)
-        pai->esq = aux;
+    else if (parentNode->left == NULL)
+        parentNode->left = newNode;
     // Senão, insere na direita
     else
-        pai->dir = aux;
+        parentNode->right = newNode;
 
     return TRUE;
 }
 
 // Conta recursivamente o número total de nós na árvore
-int ContaNos(TNo *r)
+int CountNodes(TNode *r)
 {
     if (r == NULL)
         return 0;
     else
-        return 1 + ContaNos(r->esq) + ContaNos(r->dir);
+        return 1 + CountNodes(r->left) + CountNodes(r->right);
 }
 
 // Busca recursivamente um valor na árvore
 // Nota: Esta não é uma Árvore Binária de Busca (não usa < ou >),
 // portanto, ela verifica ambos os lados (OR lógico) até encontrar.
-int PesquisaValor(TNo *r, int n)
+int SearchValue(TNode *r, int n)
 {
     if (r == NULL)
         return FALSE;
-    else if (r->valor == n)
+    else if (r->value == n)
         return TRUE;
     else
-        return PesquisaValor(r->esq, n) || PesquisaValor(r->dir, n);
+        return SearchValue(r->left, n) || SearchValue(r->right, n);
 }
 
 // Conta quantos nós possuem valores pares
-int ContaPares(TNo *r)
+int CountEvens(TNode *r)
 {
     if (r == NULL)
         return 0;
-    else if (r->valor % 2 == 0)
-        return 1 + ContaPares(r->esq) + ContaPares(r->dir);
+    else if (r->value % 2 == 0)
+        return 1 + CountEvens(r->left) + CountEvens(r->right);
     else
-        return ContaPares(r->esq) + ContaPares(r->dir);
+        return CountEvens(r->left) + CountEvens(r->right);
 }
 
 // Calcula a altura da árvore descendo apenas pelo ramo esquerdo
 // (Funciona corretamente para árvores completas ou cheias)
-int AlturaArv(TNo *r)
+int GetTreeHeight(TNode *r)
 {
     if (r == NULL)
         return 0;
     else
-        return 1 + AlturaArv(r->esq);
+        return 1 + GetTreeHeight(r->left);
 }
 
 // Imprime a árvore nível por nível (travessia em largura) usando uma Fila dinâmica
-void ImprimeArvoreNvl(TNo *r, int n)
+void PrintTreeLevelOrder(TNode *r, int n)
 {
-    DFila fila;
-    InicializaFila(&fila);
+    DQueue queue;
+    InitializeQueue(&queue);
     int N = 0, D = 1, i = 1;
     
     if (r != NULL)
@@ -225,31 +251,31 @@ void ImprimeArvoreNvl(TNo *r, int n)
         printf("---------------------------------------- ");
         
         // Começa enfileirando a raiz
-        IncluiItemFila(&fila, r);
+        EnqueueItem(&queue, r);
 
         // Loop de processamento da fila
         while(1)
         {
             
-            TNo *numero = DesemFilar(&fila);
-            if (numero == NULL)
+            TNode *node = Dequeue(&queue);
+            if (node == NULL)
                 break;
             
             // Lógica para identificar mudança de nível com base na potência de 2
             // Supondo uma árvore binária cheia para quebra de linha
             if ( i == D ){
-                printf("\n %d: %d ", N, numero->valor);
+                printf("\n %d: %d ", N, node->value);
                 N++;
                 D = D * 2; // Dobra a quantidade esperada de nós para o próximo nível (1, 2, 4, 8...)
             }
             else
-                printf(" %d  ", numero->valor);
+                printf(" %d  ", node->value);
 
             // Enfileira os filhos (esquerda e direita) se existirem
-            if (numero->esq != NULL)
-                IncluiItemFila(&fila, numero->esq);
-            if (numero->dir != NULL)
-                IncluiItemFila(&fila, numero->dir);
+            if (node->left != NULL)
+                EnqueueItem(&queue, node->left);
+            if (node->right != NULL)
+                EnqueueItem(&queue, node->right);
             i++;
         }
     }
@@ -258,61 +284,61 @@ void ImprimeArvoreNvl(TNo *r, int n)
 /// --- Funções de Manipulação da Fila ---
 
 // Inicializa os ponteiros e o contador da fila
-void InicializaFila(DFila *lista)
+void InitializeQueue(DQueue *list)
 {
-    lista->topo = NULL;
-    lista->fim = NULL;
-    lista->qtde = 0;
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
 }
 
 // Insere um novo item no final da fila (Enqueue)
-int IncluiItemFila(DFila *lista, TNo *valor)
+int EnqueueItem(DQueue *list, TNode *value)
 {
-    TLista *novo = (TLista *)malloc(sizeof(TLista));
+    TList *newNode = (TList *)malloc(sizeof(TList));
 
-    if (novo == NULL)
+    if (newNode == NULL)
     {
         puts("Erro fatal: Memoria insuficiente para esta operacao");
         return MEMORY_ERROR;
     }
-    novo->valor = valor;
-    novo->prox = NULL;
+    newNode->nodeValue = value;
+    newNode->next = NULL;
 
-    if (lista->topo == NULL)
+    if (list->head == NULL)
     {
         // Se a fila estava vazia, o novo nó é o primeiro e o último
-        lista->topo = novo;
-        lista->fim = novo;
+        list->head = newNode;
+        list->tail = newNode;
     }
     else
     {
-        // Senão, insere no fim e atualiza o ponteiro fim
-        lista->fim->prox = novo;
-        lista->fim = novo;
+        // Senão, insere no fim e atualiza o ponteiro tail
+        list->tail->next = newNode;
+        list->tail = newNode;
     }
-    lista->qtde++;
+    list->count++;
     return TRUE;
 }
 
 // Remove o item do início da fila e retorna o valor (Dequeue)
-TNo *DesemFilar(DFila *lista)
+TNode *Dequeue(DQueue *list)
 {
-    if (lista->topo == NULL)
+    if (list->head == NULL)
         return NULL;
 
-    TLista *temp = lista->topo;
-    TNo *valor = temp->valor;
+    TList *temp = list->head;
+    TNode *value = temp->nodeValue;
 
     // Avança o ponteiro de início para o próximo nó
-    lista->topo = lista->topo->prox;
+    list->head = list->head->next;
 
-    // Se a fila ficou vazia, ajusta o ponteiro fim também
-    if (lista->topo == NULL)
-        lista->fim = NULL;
+    // Se a fila ficou vazia, ajusta o ponteiro tail também
+    if (list->head == NULL)
+        list->tail = NULL;
 
     // Libera a memória do nó da lista (não da árvore)
     free(temp);
-    lista->qtde--;
+    list->count--;
 
-    return valor;
+    return value;
 }

@@ -1,5 +1,4 @@
-//EDUARDO FERREIRA PROENÇA – 0030482421038
-//GABRIEL DOS REIS ANTUNES – 0030482421046
+
 #include "Q1-lista.h"
 
 int main(void) {
